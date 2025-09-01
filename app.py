@@ -44,7 +44,8 @@ st.title("AI Image Classifier")
 uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")  # Đảm bảo 3 channel
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+    st.image(image, caption="Uploaded Image", use_container_width=True)
+
 
     # --- Dự đoán ---
     image_tensor = test_transform(image).unsqueeze(0).to(device)
@@ -60,3 +61,4 @@ if uploaded_file:
     st.write(f"**Predicted class:** {predicted_class}")
     st.write(f"Probability - def_front: {prob_def:.2f}%")
     st.write(f"Probability - ok_front: {prob_ok:.2f}%")
+
