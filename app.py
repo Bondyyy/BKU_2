@@ -3,12 +3,11 @@ import torch
 import torch.nn as nn
 from torchvision import models, transforms
 from PIL import Image
-import os
 
-# Thiết bị
+# --- Thiết bị ---
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Model
+# --- Hàm tạo model ---
 def get_model():
     model = models.efficientnet_v2_s(weights=None)
     in_features = model.classifier[1].in_features
@@ -18,31 +17,36 @@ def get_model():
     )
     return model.to(device)
 
-model_path = os.path.join(os.path.dirname(__file__), 'final_model.pth')
-model = get_model()
-model.load_state_dict(torch.load(model_path, map_location=device))
-model.eval()
+# --- Cache model để chỉ load 1 lần ---
+@st.cache_resource
+def load_model():
+    model = get_model()
+    model.load_state_dict(torch.load('final_model.pth', map_location=device))
+    model.eval()
+    return model
 
-# Transform
+model = load_model()
+
+# --- Transform ảnh ---
 test_transform = transforms.Compose([
     transforms.Resize((224, 224)),
-    transforms.Grayscale(num_output_channels=3),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406],
                          std=[0.229, 0.224, 0.225])
 ])
 
+# --- Class names ---
 class_names = ['def_front', 'ok_front']
 
-# Streamlit UI
+# --- Streamlit UI ---
 st.title("AI Image Classifier")
 
 uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
 if uploaded_file:
-    image = Image.open(uploaded_file)
+    image = Image.open(uploaded_file).convert("RGB")  # Đảm bảo 3 channel
     st.image(image, caption="Uploaded Image", use_column_width=True)
 
-    # Dự đoán
+    # --- Dự đoán ---
     image_tensor = test_transform(image).unsqueeze(0).to(device)
     with torch.no_grad():
         outputs = model(image_tensor)
@@ -52,6 +56,7 @@ if uploaded_file:
         prob_def = probabilities[0].item() * 100
         prob_ok = probabilities[1].item() * 100
 
+    # --- Hiển thị kết quả ---
     st.write(f"**Predicted class:** {predicted_class}")
     st.write(f"Probability - def_front: {prob_def:.2f}%")
     st.write(f"Probability - ok_front: {prob_ok:.2f}%")
