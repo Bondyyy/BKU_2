@@ -3,4 +3,5 @@ gunicorn
 torch
 torchvision
 pillow
+Image
 gdown
